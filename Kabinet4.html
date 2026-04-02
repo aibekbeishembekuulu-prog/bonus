@@ -1,0 +1,167 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Карго Личный Кабинет</title>
+
+<style>
+body{
+  font-family: Arial;
+  margin:0;
+  background:#f3f6fb;
+}
+
+.header{
+  text-align:center;
+  padding:15px;
+  background:white;
+}
+
+.header img{
+  height:60px;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  font-size:16px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  background:#16a34a;
+  color:white;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
+}
+
+.card{
+  background:white;
+  padding:15px;
+  margin-top:15px;
+  border-radius:12px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.08);
+}
+
+.bonus{
+  background:#fff7e6;
+  padding:15px;
+  margin-top:15px;
+  border-radius:12px;
+}
+
+.footer img{
+  width:100%;
+  margin-top:20px;
+  border-radius:12px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <img src="logo.jpg" alt="logo">
+</div>
+
+<div class="container">
+
+  <input id="clientCode" placeholder="Введите client code">
+  <button onclick="loadData()">Проверить</button>
+
+  <div id="result"></div>
+</div>
+
+<div class="footer">
+  <img src="bonus.jpg" alt="bonus">
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbzBaj7u0l0-v7kRdOp6Czuu5jHGZPKlYeH1Igp6WgUPNB_Ia1mNzaoycse8d7eOYJhS/exec";
+
+async function loadData(){
+  const code = document.getElementById("clientCode").value.trim().toLowerCase();
+  const result = document.getElementById("result");
+
+  result.innerHTML = "Загрузка...";
+
+  try{
+    const res = await fetch(API_URL);
+    const data = await res.json();
+
+    const list = Array.isArray(data) ? data : (data.data || []);
+
+    const filtered = list.filter(i =>
+      String(i.client_code || "").trim().toLowerCase() === code
+    );
+
+    if(filtered.length === 0){
+      result.innerHTML = "❌ Не найдено";
+      return;
+    }
+
+    let totalKg = 0;
+    filtered.forEach(i => totalKg += Number(i.kg) || 0);
+
+    let bonus = Math.floor(totalKg / 15);
+
+    let html = `
+      <div class="bonus">
+        <h3>🎁 Бонус система</h3>
+        <div>📦 Всего кг: <b>${totalKg}</b></div>
+        <div>🏆 Бесплатно: <b>${bonus} кг</b></div>
+      </div>
+    `;
+
+    filtered.forEach(item=>{
+      html += `
+        <div class="card">
+          <div>📦 Трек: <b>${item.track_code_text || "-"}</b></div>
+          <div>📊 Статус: <b>${item.parcel_status || "-"}</b></div>
+          <div>📅 Отправка: <b>${formatDate(item.date)}</b></div>
+          <div>⏳ Прибытие: <b>${formatDate(item.expected_date)}</b></div>
+          <div>⚖️ Вес: <b>${Number(item.kg) || 0}</b> кг</div>
+        </div>
+      `;
+    });
+
+    result.innerHTML = html;
+
+  }catch(e){
+    result.innerHTML = "Ошибка загрузки";
+  }
+}
+
+/* ✅ FIXED DATE FUNCTION (КЫРГЫЗСТАН TIMEZONE) */
+function formatDate(dateStr){
+  if(!dateStr) return "-";
+
+  const date = new Date(dateStr);
+
+  if(!isNaN(date)){
+    return date.toLocaleDateString("ru-RU", {
+      timeZone: "Asia/Bishkek",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).replace(/\//g, ".");
+  }
+
+  return dateStr;
+}
+</script>
+
+</body>
+</html>
